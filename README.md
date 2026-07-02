@@ -75,6 +75,6 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ### Contact
 
-AiIntegratedDeveloperAbdullah - [Your GitHub Profile](https://github.com/AiIntegratedDeveloperAbdullah)
+AiIntegratedDeveloperAbdullah - https://github.com/AiIntegratedDeveloperAbdullah
 
 Project Link: [https://github.com/AiIntegratedDeveloperAbdullah/Advanced-Algorithmic-Optimizer](https://github.com/AiIntegratedDeveloperAbdullah/Advanced-Algorithmic-Optimizer)
