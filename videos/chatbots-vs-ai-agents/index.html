@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>Chatbots vs AI Agents</title>
+    <script src="assets/vendor/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: "Inter"; src: url("assets/fonts/inter-latin-400-normal.woff2") format("woff2"); font-weight: 400; }
+      @font-face { font-family: "Inter"; src: url("assets/fonts/inter-latin-500-normal.woff2") format("woff2"); font-weight: 500; }
+      @font-face { font-family: "Inter"; src: url("assets/fonts/inter-latin-600-normal.woff2") format("woff2"); font-weight: 600; }
+      @font-face { font-family: "Inter"; src: url("assets/fonts/inter-latin-800-normal.woff2") format("woff2"); font-weight: 800; }
+      @font-face { font-family: "Space Grotesk"; src: url("assets/fonts/space-grotesk-latin-400-normal.woff2") format("woff2"); font-weight: 400; }
+      @font-face { font-family: "Space Grotesk"; src: url("assets/fonts/space-grotesk-latin-700-normal.woff2") format("woff2"); font-weight: 700; }
+      @font-face { font-family: "DejaVu Sans Mono"; src: url("assets/fonts/DejaVuSansMono.ttf") format("truetype"); font-weight: 400; }
+
+      :root {
+        --ink: #06080e;
+        --panel: #0e1320;
+        --panel-2: #141b2c;
+        --line: #26304a;
+        --text: #eef2f8;
+        --muted: #8a95ad;
+        --agent: #46d3ff;
+        --agent-deep: #1d7fa8;
+        --bot: #ffb54a;
+        --ok: #4ee59a;
+        --warn: #ff7a66;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--ink); }
+      body { font-family: "Inter", sans-serif; color: var(--text); }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--ink); }
+      .clip { position: absolute; inset: 0; }
+      .abs { position: absolute; }
+      .display { font-family: "Space Grotesk", sans-serif; font-weight: 700; letter-spacing: -0.03em; line-height: 0.95; }
+      .mono { font-family: "DejaVu Sans Mono", monospace; }
+      .kicker { font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 30px; letter-spacing: 0.22em; text-transform: uppercase; }
+      .scene { position: absolute; inset: 0; }
+      .cam { position: absolute; inset: 0; transform-origin: 50% 45%; }
+
+      /* ---------- background ---------- */
+      #bg-grid { position: absolute; inset: -200px; background-image:
+          linear-gradient(rgba(70,211,255,0.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(70,211,255,0.06) 1px, transparent 1px);
+        background-size: 90px 90px; }
+      #bg-glow-a { position: absolute; width: 1400px; height: 1400px; left: -160px; top: 200px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(70,211,255,0.16) 0%, rgba(70,211,255,0) 60%); }
+      #bg-glow-b { position: absolute; width: 1200px; height: 1200px; left: -60px; top: 700px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(255,181,74,0.13) 0%, rgba(255,181,74,0) 60%); }
+      #bg-vignette { position: absolute; inset: 0;
+        background: radial-gradient(ellipse 80% 60% at 50% 45%, rgba(6,8,14,0) 40%, rgba(6,8,14,0.92) 100%); }
+
+      /* ---------- agent core (recurring anchor) ---------- */
+      .core { position: absolute; width: 360px; height: 360px; }
+      .core .ring { position: absolute; inset: 0; border-radius: 50%; border: 3px solid var(--agent);
+        box-shadow: 0 0 60px rgba(70,211,255,0.35), inset 0 0 40px rgba(70,211,255,0.2); }
+      .core .ring2 { position: absolute; inset: 40px; border-radius: 50%; border: 2px dashed rgba(70,211,255,0.55); }
+      .core .heart { position: absolute; inset: 120px; border-radius: 50%;
+        background: radial-gradient(circle at 40% 35%, #c9f3ff 0%, var(--agent) 35%, var(--agent-deep) 100%);
+        box-shadow: 0 0 80px rgba(70,211,255,0.6); }
+      .core .sat { position: absolute; width: 22px; height: 22px; border-radius: 50%; background: var(--agent);
+        left: 169px; top: -11px; box-shadow: 0 0 20px var(--agent); }
+      .core .orbit { position: absolute; inset: 0; }
+
+      /* ---------- generic UI ---------- */
+      .card { position: absolute; background: var(--panel); border: 2px solid var(--line); border-radius: 28px; }
+      .bubble { position: absolute; padding: 26px 34px; border-radius: 30px; font-size: 38px; font-weight: 500; line-height: 1.25; }
+      .bubble.user { background: #2a2216; border: 2px solid rgba(255,181,74,0.6); color: #ffe2b8; border-bottom-right-radius: 8px; }
+      .bubble.bot { background: var(--panel-2); border: 2px solid var(--line); color: var(--text); border-bottom-left-radius: 8px; }
+      .pill { position: absolute; border-radius: 999px; padding: 18px 34px; font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 34px; white-space: nowrap; }
+      .node { position: absolute; border-radius: 24px; background: var(--panel-2); border: 2px solid var(--line);
+        display: flex; align-items: center; justify-content: center; font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 32px; color: var(--text); }
+      .lbl { font-size: 26px; color: var(--muted); font-weight: 500; }
+      svg.wires { position: absolute; inset: 0; width: 1080px; height: 1920px; overflow: visible; }
+      svg.wires path { fill: none; stroke-linecap: round; }
+
+      /* ---------- captions ---------- */
+      #captions { position: absolute; left: 90px; right: 90px; top: 1490px; height: 170px; }
+      .cap { position: absolute; left: 0; right: 0; top: 0; text-align: center; font-size: 50px; font-weight: 600; line-height: 1.2;
+        color: var(--text); opacity: 0; text-shadow: 0 4px 24px rgba(0,0,0,0.85); }
+      .cap b { font-weight: 800; }
+      .cap .a { color: var(--agent); }
+      .cap .c { color: var(--bot); }
+      .cap .g { color: var(--ok); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="41.25" data-width="1080" data-height="1920">
+
+      <!-- Narration: the supplied recording, untouched -->
+      <audio id="vo" src="assets/voiceover.mp3" data-start="0" data-duration="41.25" data-track-index="9" data-volume="1"></audio>
+
+      <!-- ================= BACKGROUND (full duration) ================= -->
+      <div id="bg" class="clip" data-start="0" data-duration="41.25" data-track-index="0">
+        <div id="bg-grid"></div>
+        <div id="bg-glow-a"></div>
+        <div id="bg-glow-b"></div>
+        <div id="bg-vignette"></div>
+      </div>
+
+      <!-- ================= S1 HOOK 0 – 4.05 ================= -->
+      <div id="s1" class="clip" data-start="0" data-duration="4.25" data-track-index="1">
+        <div class="scene" id="s1-in">
+          <div class="cam" id="s1-cam">
+            <div class="kicker abs" id="s1-k" style="left:0; right:0; top:300px; text-align:center; color:var(--muted);">Two ways to use AI</div>
+            <!-- chatbot half -->
+            <div class="abs" id="s1-bot" style="left:0; right:0; top:420px; height:420px;">
+              <div class="bubble bot abs" id="s1-bub" style="left:390px; top:0; width:300px; height:150px; padding:0; display:flex; align-items:center; justify-content:center; gap:22px;">
+                <span class="abs" style="position:relative; width:22px; height:22px; border-radius:50%; background:var(--bot);"></span>
+                <span class="abs" style="position:relative; width:22px; height:22px; border-radius:50%; background:var(--bot);"></span>
+                <span class="abs" style="position:relative; width:22px; height:22px; border-radius:50%; background:var(--bot);"></span>
+              </div>
+              <div class="display abs" id="s1-w1" style="left:0; right:0; top:200px; text-align:center; font-size:132px; color:var(--bot);">CHATBOTS</div>
+              <div class="display abs" id="s1-w2" style="left:0; right:0; top:330px; text-align:center; font-size:72px; color:var(--text);">ANSWER</div>
+            </div>
+            <!-- divider -->
+            <div class="abs" id="s1-div" style="left:140px; width:800px; top:900px; height:3px; background:linear-gradient(90deg, rgba(255,181,74,0), var(--bot), var(--agent), rgba(70,211,255,0)); transform-origin:50% 50%;"></div>
+            <!-- agent half -->
+            <div class="abs" id="s1-agent" style="left:0; right:0; top:960px; height:480px;">
+              <div class="display abs" id="s1-w3" style="left:0; right:0; top:0; text-align:center; font-size:150px; color:var(--agent);">AGENTS</div>
+              <div class="display abs" id="s1-w4" style="left:0; right:0; top:160px; text-align:center; font-size:72px; color:var(--text);">GET WORK DONE</div>
+              <div class="abs" id="s1-steps" style="left:240px; top:300px; width:600px; height:60px;">
+                <div class="abs s1-dot" style="left:0; top:15px; width:30px; height:30px; border-radius:50%; background:var(--agent);"></div>
+                <div class="abs s1-bar" style="left:40px; top:28px; width:120px; height:4px; background:var(--agent); transform-origin:0 50%;"></div>
+                <div class="abs s1-dot" style="left:170px; top:15px; width:30px; height:30px; border-radius:50%; background:var(--agent);"></div>
+                <div class="abs s1-bar" style="left:210px; top:28px; width:120px; height:4px; background:var(--agent); transform-origin:0 50%;"></div>
+                <div class="abs s1-dot" style="left:340px; top:15px; width:30px; height:30px; border-radius:50%; background:var(--agent);"></div>
+                <div class="abs s1-bar" style="left:380px; top:28px; width:120px; height:4px; background:var(--agent); transform-origin:0 50%;"></div>
+                <div class="abs s1-dot" style="left:510px; top:5px; width:50px; height:50px; border-radius:50%; background:var(--ok); color:#06210f; font-size:34px; font-weight:800; display:flex; align-items:center; justify-content:center;">✓</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= S2 CHATBOT 4.0 – 7.55 ================= -->
+      <div id="s2" class="clip" data-start="3.95" data-duration="3.75" data-track-index="2">
+        <div class="scene" id="s2-in">
+          <div class="cam" id="s2-cam">
+            <div class="kicker abs" style="left:0; right:0; top:280px; text-align:center; color:var(--bot);">Chatbot</div>
+            <div class="abs" id="s2-steps" style="left:0; right:0; top:340px; text-align:center; font-family:'Space Grotesk'; font-size:40px; font-weight:700; color:var(--muted);">
+              <span id="s2-st1">prompt</span> <span style="color:#3a4560">→</span> <span id="s2-st2">reply</span> <span style="color:#3a4560">→</span> <span id="s2-st3">stop</span>
+            </div>
+            <div class="card" id="s2-win" style="left:110px; top:450px; width:860px; height:900px;">
+              <div class="abs" style="left:0; right:0; top:0; height:84px; border-bottom:2px solid var(--line); display:flex; align-items:center; padding-left:36px; gap:14px;">
+                <span style="width:18px; height:18px; border-radius:50%; background:#3a4560;"></span>
+                <span style="width:18px; height:18px; border-radius:50%; background:#3a4560;"></span>
+                <span style="width:18px; height:18px; border-radius:50%; background:#3a4560;"></span>
+                <span class="lbl" style="margin-left:20px;">Chat</span>
+              </div>
+              <div class="bubble user" id="s2-q" style="right:40px; top:130px; max-width:620px;">Ideas for a weekend trip?</div>
+              <div class="bubble bot" id="s2-typing" style="left:40px; top:300px; width:170px; height:86px; padding:0; display:flex; align-items:center; justify-content:center; gap:16px;">
+                <span class="s2-td" style="width:16px; height:16px; border-radius:50%; background:var(--muted);"></span>
+                <span class="s2-td" style="width:16px; height:16px; border-radius:50%; background:var(--muted);"></span>
+                <span class="s2-td" style="width:16px; height:16px; border-radius:50%; background:var(--muted);"></span>
+              </div>
+              <div class="bubble bot" id="s2-a" style="left:40px; top:300px; width:640px;">
+                <div style="margin-bottom:14px;">Here are a few ideas:</div>
+                <div class="s2-line" style="height:18px; width:480px; border-radius:9px; background:#2b3550; margin:14px 0;"></div>
+                <div class="s2-line" style="height:18px; width:400px; border-radius:9px; background:#2b3550; margin:14px 0;"></div>
+                <div class="s2-line" style="height:18px; width:440px; border-radius:9px; background:#2b3550; margin:14px 0 4px;"></div>
+              </div>
+              <div class="abs" id="s2-stop" style="left:0; right:0; top:680px; display:flex; flex-direction:column; align-items:center; gap:22px;">
+                <div style="width:96px; height:96px; border-radius:50%; border:3px solid var(--bot); display:flex; align-items:center; justify-content:center;">
+                  <div style="width:34px; height:34px; border-radius:6px; background:var(--bot);"></div>
+                </div>
+                <div class="lbl" style="font-size:30px; color:var(--bot);">Conversation ends · waiting for you</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= S3 AGENT TAKES A GOAL 7.5 – 10.1 ================= -->
+      <div id="s3" class="clip" data-start="7.45" data-duration="2.85" data-track-index="1">
+        <div class="scene" id="s3-in">
+          <div class="cam" id="s3-cam">
+            <div class="kicker abs" style="left:0; right:0; top:280px; text-align:center; color:var(--agent);">Agent</div>
+            <div class="pill" id="s3-goal" style="left:240px; top:370px; width:600px; text-align:center; background:rgba(70,211,255,0.12); border:3px solid var(--agent); color:var(--agent);">GOAL · Plan a weekend trip</div>
+            <svg class="wires" viewBox="0 0 1080 1920">
+              <path id="s3-w1" d="M540 470 C540 560 300 560 300 640" stroke="#46d3ff" stroke-width="5" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+              <path id="s3-w2" d="M300 760 C300 860 780 820 780 920" stroke="#46d3ff" stroke-width="5" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+              <path id="s3-w3" d="M780 1040 C780 1140 300 1100 300 1200" stroke="#46d3ff" stroke-width="5" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+              <path id="s3-w4" d="M300 1320 C300 1400 540 1380 540 1440" stroke="#46d3ff" stroke-width="5" pathLength="1" stroke-dasharray="0.04 0.04" stroke-dashoffset="1"/>
+            </svg>
+            <div class="node s3-n" style="left:150px; top:640px; width:300px; height:120px;">Step 1</div>
+            <div class="node s3-n" style="left:630px; top:920px; width:300px; height:120px;">Step 2</div>
+            <div class="node s3-n" style="left:150px; top:1200px; width:300px; height:120px;">Step 3</div>
+            <div class="display abs" id="s3-keep" style="left:560px; top:1220px; font-size:56px; color:var(--text); width:440px;">keeps going…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= S4 SYSTEM DIAGRAM 10.05 – 18.45 ================= -->
+      <div id="s4" class="clip" data-start="9.95" data-duration="8.65" data-track-index="2">
+        <div class="scene" id="s4-in">
+          <div class="cam" id="s4-cam">
+            <div class="pill" id="s4-goal" style="left:290px; top:260px; width:500px; text-align:center; background:rgba(70,211,255,0.12); border:3px solid var(--agent); color:var(--agent);">GOAL</div>
+            <svg class="wires" viewBox="0 0 1080 1920">
+              <path class="s4-split" d="M540 352 C540 420 190 410 190 470" stroke="#46d3ff" stroke-width="4" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+              <path class="s4-split" d="M540 352 L540 470" stroke="#46d3ff" stroke-width="4" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+              <path class="s4-split" d="M540 352 C540 420 890 410 890 470" stroke="#46d3ff" stroke-width="4" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+              <path class="s4-join" d="M190 1000 C190 1080 540 1060 540 1110" stroke="#46d3ff" stroke-width="4" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+              <path class="s4-join" d="M540 1000 L540 1110" stroke="#46d3ff" stroke-width="4" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+              <path class="s4-join" d="M890 1000 C890 1080 540 1060 540 1110" stroke="#46d3ff" stroke-width="4" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+              <!-- feedback loop: verify back up to step 3 -->
+              <path id="s4-loop" d="M660 1180 C1010 1180 1030 900 1030 700 C1030 560 990 520 960 520" stroke="#ff7a66" stroke-width="5" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+            </svg>
+            <div class="abs" id="s4-loop-arrow" style="left:930px; top:504px; width:0; height:0; border-top:16px solid transparent; border-bottom:16px solid transparent; border-right:28px solid var(--warn);"></div>
+            <!-- task nodes -->
+            <div class="node s4-task" id="s4-t1" style="left:60px; top:470px; width:260px; height:96px; font-size:30px;">Research</div>
+            <div class="node s4-task" id="s4-t2" style="left:410px; top:470px; width:260px; height:96px; font-size:30px;">Schedule</div>
+            <div class="node s4-task" id="s4-t3" style="left:760px; top:470px; width:260px; height:96px; font-size:30px;">Build</div>
+            <div class="kicker abs" id="s4-tools-k" style="left:0; right:0; top:592px; text-align:center; color:var(--muted); font-size:26px;">Tools</div>
+            <!-- browser -->
+            <div class="card s4-tool" id="s4-browser" style="left:60px; top:640px; width:260px; height:360px; border-radius:22px; overflow:hidden;">
+              <div style="height:52px; background:#1a2236; display:flex; align-items:center; padding:0 14px; gap:8px;">
+                <span style="width:12px; height:12px; border-radius:50%; background:#3a4560;"></span><span style="width:12px; height:12px; border-radius:50%; background:#3a4560;"></span>
+                <span style="flex:1; height:22px; border-radius:11px; background:#0b1020; margin-left:8px;"></span>
+              </div>
+              <div class="s4-br-line" style="margin:22px 18px 0; height:76px; border-radius:12px; background:#1c2640;"></div>
+              <div class="s4-br-line" style="margin:14px 18px 0; height:16px; width:190px; border-radius:8px; background:#2b3550;"></div>
+              <div class="s4-br-line" style="margin:12px 18px 0; height:16px; width:150px; border-radius:8px; background:#2b3550;"></div>
+              <div class="s4-br-line" style="margin:12px 18px 0; height:16px; width:200px; border-radius:8px; background:#2b3550;"></div>
+              <div style="position:absolute; left:0; right:0; bottom:20px; text-align:center;" class="lbl">Browser</div>
+            </div>
+            <!-- calendar -->
+            <div class="card s4-tool" id="s4-cal" style="left:410px; top:640px; width:260px; height:360px; border-radius:22px; overflow:hidden;">
+              <div style="height:52px; background:#1a2236; display:flex; align-items:center; justify-content:center; font-family:'Space Grotesk'; font-weight:700; font-size:24px; color:var(--muted);">SAT · SUN</div>
+              <div id="s4-cal-grid" style="position:absolute; left:22px; top:76px; width:216px; height:180px; display:grid; grid-template-columns:repeat(4, 1fr); gap:10px;"></div>
+              <div style="position:absolute; left:0; right:0; bottom:20px; text-align:center;" class="lbl">Calendar</div>
+            </div>
+            <!-- code -->
+            <div class="card s4-tool" id="s4-code" style="left:760px; top:640px; width:260px; height:360px; border-radius:22px; overflow:hidden; background:#0a0f1a;">
+              <div class="mono" style="padding:24px 20px; font-size:20px; line-height:1.7; color:#9fb0cc;">
+                <div class="s4-cl"><span style="color:#c792ea">def</span> <span style="color:var(--agent)">plan</span>():</div>
+                <div class="s4-cl">&nbsp;&nbsp;days = <span style="color:var(--bot)">2</span></div>
+                <div class="s4-cl">&nbsp;&nbsp;route = map()</div>
+                <div class="s4-cl">&nbsp;&nbsp;<span style="color:#c792ea">return</span> route</div>
+              </div>
+              <div style="position:absolute; left:0; right:0; bottom:20px; text-align:center;" class="lbl">Code</div>
+            </div>
+            <!-- verify -->
+            <div class="node" id="s4-verify" style="left:400px; top:1110px; width:280px; height:140px; flex-direction:column; gap:6px; border-color:var(--ok);">
+              <div style="display:flex; gap:14px;">
+                <span class="s4-chk" style="width:40px; height:40px; border-radius:50%; background:var(--ok); color:#06210f; font-size:26px; display:flex; align-items:center; justify-content:center;">✓</span>
+                <span class="s4-chk" style="width:40px; height:40px; border-radius:50%; background:var(--ok); color:#06210f; font-size:26px; display:flex; align-items:center; justify-content:center;">✓</span>
+                <span id="s4-x" class="s4-chk" style="position:relative; width:40px; height:40px; border-radius:50%; background:var(--warn); color:#2a0a05; font-size:26px; display:flex; align-items:center; justify-content:center;">
+                  <span id="s4-x-mark">✕</span>
+                  <span id="s4-x-ok" style="position:absolute; inset:0; border-radius:50%; background:var(--ok); color:#06210f; display:flex; align-items:center; justify-content:center; opacity:0;">✓</span>
+                </span>
+              </div>
+              <div style="font-size:30px;">VERIFY</div>
+            </div>
+            <div class="abs" id="s4-fix" style="left:700px; top:1270px; width:340px; font-size:30px; font-weight:600; color:var(--warn); text-align:right;">fix &amp; retry</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= S5 TRAVEL 18.4 – 28.05 ================= -->
+      <div id="s5" class="clip" data-start="18.35" data-duration="9.85" data-track-index="1">
+        <div class="scene" id="s5-in">
+          <div class="cam" id="s5-cam">
+            <!-- chatbot panel -->
+            <div class="card" id="s5-botp" style="left:80px; top:240px; width:920px; height:470px; border-color:rgba(255,181,74,0.45);">
+              <div class="kicker abs" style="left:44px; top:36px; color:var(--bot); font-size:26px;">Chatbot</div>
+              <div class="bubble user abs" id="s5-q1" style="right:40px; top:26px; font-size:30px; padding:16px 26px;">Trip ideas?</div>
+              <div class="abs" id="s5-list" style="left:44px; top:130px; font-size:40px; font-weight:500; line-height:1.55;">
+                <div class="s5-li"><span style="color:var(--bot)">•</span> A coastal city weekend</div>
+                <div class="s5-li"><span style="color:var(--bot)">•</span> A mountain cabin escape</div>
+                <div class="s5-li"><span style="color:var(--bot)">•</span> A food tour downtown</div>
+                <div class="s5-li" style="color:var(--muted); font-size:32px;">…a list of ideas. Now it's on you.</div>
+              </div>
+            </div>
+            <!-- agent panel -->
+            <div class="card" id="s5-agp" style="left:80px; top:750px; width:920px; height:666px; border-color:rgba(70,211,255,0.55);">
+              <div class="kicker abs" style="left:44px; top:36px; color:var(--agent); font-size:26px;">Agent</div>
+              <div class="bubble user abs" id="s5-q2" style="right:40px; top:26px; font-size:30px; padding:16px 26px;">Plan it for me.</div>
+              <!-- compare -->
+              <div class="abs" id="s5-cmp" style="left:44px; top:130px; width:832px; height:224px;">
+                <div class="lbl abs" style="left:0; top:0;">1 · Compare options</div>
+                <div class="abs s5-opt" id="s5-optA" style="left:0; top:44px; width:400px; height:176px; border-radius:20px; background:var(--panel-2); border:2px solid var(--line); padding:20px 24px;">
+                  <div style="font-family:'Space Grotesk'; font-weight:700; font-size:30px;">Option A · Coast</div>
+                  <div class="lbl" style="margin-top:12px; font-size:22px;">Travel time</div>
+                  <div style="height:12px; border-radius:6px; background:#22304a; margin-top:6px;"><div class="s5-bar" style="height:12px; width:70%; border-radius:6px; background:var(--agent); transform-origin:0 50%;"></div></div>
+                  <div class="lbl" style="margin-top:10px; font-size:22px;">Fits budget</div>
+                  <div style="height:12px; border-radius:6px; background:#22304a; margin-top:6px;"><div class="s5-bar" style="height:12px; width:85%; border-radius:6px; background:var(--agent); transform-origin:0 50%;"></div></div>
+                </div>
+                <div class="abs s5-opt" id="s5-optB" style="left:432px; top:44px; width:400px; height:176px; border-radius:20px; background:var(--panel-2); border:2px solid var(--line); padding:20px 24px;">
+                  <div style="font-family:'Space Grotesk'; font-weight:700; font-size:30px;">Option B · Hills</div>
+                  <div class="lbl" style="margin-top:12px; font-size:22px;">Travel time</div>
+                  <div style="height:12px; border-radius:6px; background:#22304a; margin-top:6px;"><div class="s5-bar" style="height:12px; width:45%; border-radius:6px; background:#5d6b88; transform-origin:0 50%;"></div></div>
+                  <div class="lbl" style="margin-top:10px; font-size:22px;">Fits budget</div>
+                  <div style="height:12px; border-radius:6px; background:#22304a; margin-top:6px;"><div class="s5-bar" style="height:12px; width:55%; border-radius:6px; background:#5d6b88; transform-origin:0 50%;"></div></div>
+                </div>
+              </div>
+              <!-- itinerary -->
+              <div class="abs" id="s5-it" style="left:44px; top:384px; width:832px; height:110px;">
+                <div class="lbl abs" style="left:0; top:0;">2 · Build itinerary</div>
+                <div class="abs" id="s5-route" style="left:20px; top:66px; width:790px; height:4px; background:repeating-linear-gradient(90deg, var(--agent) 0 16px, transparent 16px 28px); transform-origin:0 50%;"></div>
+                <div class="abs s5-day" style="left:0; top:50px; width:180px; text-align:center;"><div style="margin:0 auto; width:36px; height:36px; border-radius:50%; background:var(--agent); border:6px solid var(--panel);"></div><div style="font-size:22px; font-weight:600; margin-top:4px;">Sat AM</div></div>
+                <div class="abs s5-day" style="left:310px; top:50px; width:180px; text-align:center;"><div style="margin:0 auto; width:36px; height:36px; border-radius:50%; background:var(--agent); border:6px solid var(--panel);"></div><div style="font-size:22px; font-weight:600; margin-top:4px;">Sat PM</div></div>
+                <div class="abs s5-day" style="left:640px; top:50px; width:180px; text-align:center;"><div style="margin:0 auto; width:36px; height:36px; border-radius:50%; background:var(--agent); border:6px solid var(--panel);"></div><div style="font-size:22px; font-weight:600; margin-top:4px;">Sunday</div></div>
+              </div>
+              <!-- draft booking -->
+              <div class="abs" id="s5-draft" style="left:44px; top:520px; width:832px; height:118px; border-radius:20px; border:3px dashed var(--bot); background:rgba(255,181,74,0.07); display:flex; align-items:center; padding:0 28px; gap:24px;">
+                <div style="font-family:'Space Grotesk'; font-weight:700; font-size:24px; color:var(--bot); border:2px solid var(--bot); border-radius:10px; padding:6px 12px;">DRAFT</div>
+                <div style="flex:1; font-size:30px; font-weight:600;">Bookings ready<div class="lbl" style="font-size:22px;">Nothing booked yet</div></div>
+                <div id="s5-approve" style="font-family:'Space Grotesk'; font-weight:700; font-size:28px; color:#06080e; background:var(--bot); border-radius:999px; padding:14px 26px;">Your approval</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= S6 HUMAN OVERSIGHT 28.0 – 34.4 ================= -->
+      <div id="s6" class="clip" data-start="27.95" data-duration="6.55" data-track-index="2">
+        <div class="scene" id="s6-in">
+          <div class="cam" id="s6-cam">
+            <div class="display abs" id="s6-head" style="left:0; right:0; top:270px; text-align:center; font-size:92px;">Agents aren't <span style="color:var(--bot)">magic</span></div>
+            <!-- workflow strip -->
+            <svg class="wires" viewBox="0 0 1080 1920">
+              <path id="s6-wire" d="M150 560 L930 560" stroke="#46d3ff" stroke-width="5" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+              <path id="s6-down" d="M540 600 L540 760" stroke="#ffb54a" stroke-width="5" pathLength="1" stroke-dasharray="0.05 0.05" stroke-dashoffset="1"/>
+            </svg>
+            <div class="node s6-n" style="left:90px; top:500px; width:120px; height:120px; border-radius:50%; border-color:var(--agent);">1</div>
+            <div class="node s6-n" id="s6-n2" style="left:480px; top:500px; width:120px; height:120px; border-radius:50%; border-color:var(--agent);">2</div>
+            <div class="node s6-n" style="left:870px; top:500px; width:120px; height:120px; border-radius:50%; border-color:var(--agent);">3</div>
+            <div class="abs" id="s6-warn" style="left:600px; top:440px; display:flex; align-items:center; gap:10px; background:#2a1712; border:2px solid var(--warn); border-radius:999px; padding:10px 20px; font-size:26px; font-weight:600; color:#ffc2b8;">
+              <span style="font-size:28px;">⚠</span> 1 issue found
+            </div>
+            <!-- review gate -->
+            <div class="card" id="s6-gate" style="left:140px; top:770px; width:800px; height:560px; border-color:var(--bot); background:#120f0b;">
+              <div class="kicker abs" style="left:0; right:0; top:44px; text-align:center; color:var(--bot); font-size:28px;">Review checkpoint</div>
+              <div class="abs" style="left:350px; top:110px; width:100px; height:100px;">
+                <div style="position:absolute; left:28px; top:0; width:44px; height:44px; border-radius:50%; background:var(--bot);"></div>
+                <div style="position:absolute; left:10px; top:52px; width:80px; height:48px; border-radius:40px 40px 10px 10px; background:var(--bot);"></div>
+              </div>
+              <div class="display abs" id="s6-ha" style="left:0; right:0; top:240px; text-align:center; font-size:72px; color:var(--text);">HUMAN APPROVAL</div>
+              <div class="abs" style="left:0; right:0; top:330px; text-align:center;" class="lbl"><span class="lbl" style="font-size:30px;">Workflow paused until you decide</span></div>
+              <div class="abs" style="left:110px; top:410px; width:580px; display:flex; gap:28px;">
+                <div style="flex:1; text-align:center; font-family:'Space Grotesk'; font-weight:700; font-size:32px; border:2px solid var(--line); color:var(--muted); border-radius:999px; padding:20px 0;">Edit</div>
+                <div id="s6-ok" style="flex:1; text-align:center; font-family:'Space Grotesk'; font-weight:700; font-size:32px; background:var(--bot); color:#06080e; border-radius:999px; padding:20px 0;">Approve</div>
+              </div>
+              <div id="s6-ring" class="abs" style="left:403px; top:398px; width:302px; height:100px; border-radius:999px; border:4px solid #ffe2b8;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= S7 CONCLUSION 34.3 – 38.9 ================= -->
+      <div id="s7" class="clip" data-start="34.25" data-duration="4.75" data-track-index="1">
+        <div class="scene" id="s7-in">
+          <div class="cam" id="s7-cam">
+            <div class="kicker abs" id="s7-k" style="left:0; right:0; top:330px; text-align:center; color:var(--muted);">The shift is simple</div>
+            <!-- talks -->
+            <div class="abs" id="s7-talk" style="left:0; right:0; top:470px; height:440px;">
+              <div class="bubble bot abs" id="s7-bub" style="left:400px; top:0; width:280px; height:140px; padding:0; display:flex; align-items:center; justify-content:center; gap:20px; border-color:rgba(255,181,74,0.6);">
+                <span style="width:20px; height:20px; border-radius:50%; background:var(--bot);"></span><span style="width:20px; height:20px; border-radius:50%; background:var(--bot);"></span><span style="width:20px; height:20px; border-radius:50%; background:var(--bot);"></span>
+              </div>
+              <div class="display abs" id="s7-t1" style="left:0; right:0; top:190px; text-align:center; font-size:110px; color:var(--bot);">AI THAT TALKS</div>
+            </div>
+            <!-- works -->
+            <div class="abs" id="s7-work" style="left:0; right:0; top:950px; height:460px;">
+              <svg class="wires" viewBox="0 0 1080 1920" style="top:0; left:0;">
+                <path id="s7-wire" d="M220 70 L860 70" stroke="#46d3ff" stroke-width="6" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+              </svg>
+              <div class="abs s7-n" style="left:180px; top:30px; width:80px; height:80px; border-radius:50%; background:var(--agent);"></div>
+              <div class="abs s7-n" style="left:395px; top:30px; width:80px; height:80px; border-radius:50%; background:var(--agent);"></div>
+              <div class="abs s7-n" style="left:610px; top:30px; width:80px; height:80px; border-radius:50%; background:var(--agent);"></div>
+              <div class="abs s7-n" style="left:820px; top:30px; width:80px; height:80px; border-radius:50%; background:var(--ok); color:#06210f; font-size:44px; font-weight:800; display:flex; align-items:center; justify-content:center;">✓</div>
+              <div class="display abs" id="s7-t2" style="left:0; right:0; top:180px; text-align:center; font-size:126px; color:var(--agent);">AI THAT WORKS</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= S8 CTA 38.8 – 41.25 ================= -->
+      <div id="s8" class="clip" data-start="38.75" data-duration="2.5" data-track-index="2">
+        <div class="scene" id="s8-in">
+          <div class="cam" id="s8-cam">
+            <div class="core" id="s8-core" style="left:360px; top:420px;">
+              <div class="ring"></div>
+              <div class="ring2"></div>
+              <div class="orbit" id="s8-orbit"><div class="sat"></div></div>
+              <div class="heart"></div>
+            </div>
+            <div class="display abs" id="s8-t1" style="left:0; right:0; top:880px; text-align:center; font-size:120px;">Follow</div>
+            <div class="abs" id="s8-t2" style="left:0; right:0; top:1020px; text-align:center; font-family:'Space Grotesk'; font-weight:700; font-size:56px; color:var(--agent);">for tech, explained fast.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= CAPTIONS (full duration) ================= -->
+      <div id="captions" class="clip" data-start="0" data-duration="41.25" data-track-index="5"></div>
+    </div>
+
+    <script>
+      // ---------- Phrase timings measured from the supplied voice-over (pause detection) ----------
+      const CAPS = [
+        [0.10, 1.59, '<b class="c">Chatbots</b> answer questions.'],
+        [1.97, 3.57, 'AI <b class="a">agents</b> get the work done.'],
+        [4.09, 5.56, 'A <b class="c">chatbot</b> waits for your prompt,'],
+        [5.75, 6.40, 'replies,'],
+        [6.56, 7.30, 'and stops.'],
+        [7.62, 8.85, 'An <b class="a">agent</b> takes a <b class="a">goal</b>,'],
+        [8.93, 9.95, 'and keeps going.'],
+        [10.24, 11.70, 'It breaks the goal into steps,'],
+        [11.86, 12.90, 'picks the right <b class="a">tools</b>,'],
+        [12.97, 15.06, 'like a browser, a calendar, or code,'],
+        [15.43, 16.47, 'checks its own results,'],
+        [16.62, 18.25, 'and fixes mistakes along the way.'],
+        [18.64, 20.18, 'Ask a <b class="c">chatbot</b> about a trip,'],
+        [20.22, 21.60, 'and you get a list of ideas.'],
+        [21.90, 23.11, 'Ask an <b class="a">agent</b> to plan it,'],
+        [23.34, 24.49, 'and it compares options,'],
+        [24.66, 25.76, 'builds the itinerary,'],
+        [25.90, 27.85, 'and drafts the bookings for you to approve.'],
+        [28.21, 29.55, 'But agents aren\'t magic.'],
+        [29.81, 30.92, 'They still make mistakes,'],
+        [31.20, 34.20, 'so the best setups keep a <b class="c">human</b> in charge of the final decision.'],
+        [34.57, 35.70, 'The shift is simple:'],
+        [35.99, 37.18, 'from AI that talks,'],
+        [37.40, 38.65, 'to <b class="a">AI that works</b>.'],
+        [39.03, 39.85, 'Follow for tech,'],
+        [40.05, 41.20, 'explained fast.'],
+      ];
+      const capRoot = document.getElementById("captions");
+      CAPS.forEach((c, i) => {
+        const el = document.createElement("div");
+        el.className = "cap";
+        el.id = "cap-" + i;
+        el.innerHTML = c[2];
+        capRoot.appendChild(el);
+      });
+      // Calendar grid cells for S4
+      const grid = document.getElementById("s4-cal-grid");
+      for (let i = 0; i < 12; i++) {
+        const d = document.createElement("div");
+        d.className = "s4-cell" + (i === 6 ? " s4-cell-hot" : "");
+        d.style.cssText = "height:38px; border-radius:8px; background:" + (i === 6 ? "var(--agent)" : "#1c2640") + ";";
+        grid.appendChild(d);
+      }
+
+      const tl = gsap.timeline({ paused: true });
+      const E = "power3.out", EI = "power2.inOut";
+
+      // ---------- background drift (slow, continuous) ----------
+      tl.fromTo("#bg-grid", { x: 0, y: 0 }, { x: -90, y: -180, duration: 41.25, ease: "none" }, 0);
+      tl.fromTo("#bg-glow-a", { x: -120, y: 0, opacity: 0.7 }, { x: 140, y: -260, opacity: 1, duration: 41.25, ease: "sine.inOut" }, 0);
+      tl.fromTo("#bg-glow-b", { x: 120, y: 120, opacity: 0.5 }, { x: -80, y: -120, opacity: 0.9, duration: 41.25, ease: "sine.inOut" }, 0);
+
+      // ---------- captions ----------
+      CAPS.forEach((c, i) => {
+        const el = "#cap-" + i;
+        tl.fromTo(el, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.22, ease: E }, c[0]);
+        const next = CAPS[i + 1];
+        const out = next ? Math.min(c[1] + 0.12, next[0] - 0.02) : 41.1;
+        tl.to(el, { opacity: 0, duration: 0.14, ease: "power1.in" }, out - 0.14);
+      });
+
+      // helper: scene fade in/out on inner wrapper
+      function sceneIO(id, tIn, tOut, opts = {}) {
+        tl.fromTo("#" + id + "-in", { opacity: 0 }, { opacity: 1, duration: opts.inDur || 0.3, ease: "power1.out" }, tIn);
+        if (tOut != null) tl.to("#" + id + "-in", { opacity: 0, duration: opts.outDur || 0.3, ease: "power1.in" }, tOut);
+      }
+
+      // ================= S1 =================
+      sceneIO("s1", 0, 3.95);
+      tl.fromTo("#s1-cam", { scale: 1.08 }, { scale: 1.0, duration: 4.2, ease: "power2.out" }, 0);
+      tl.fromTo("#s1-k", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: E }, 0.05);
+      tl.fromTo("#s1-bub", { opacity: 0, scale: 0.6, y: 30 }, { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: "back.out(1.6)" }, 0.1);
+      tl.fromTo("#s1-w1", { opacity: 0, y: 70, clipPath: "inset(0 0 100% 0)" }, { opacity: 1, y: 0, clipPath: "inset(0 0 0% 0)", duration: 0.55, ease: E }, 0.12);
+      tl.fromTo("#s1-w2", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, ease: E }, 0.55);
+      // decisive transition: chatbot half dims, divider slices, agent half rises
+      tl.to("#s1-bot", { opacity: 0.32, scale: 0.94, duration: 0.5, ease: EI }, 1.85);
+      tl.fromTo("#s1-div", { scaleX: 0 }, { scaleX: 1, duration: 0.45, ease: "expo.out" }, 1.85);
+      tl.fromTo("#s1-w3", { opacity: 0, y: 80, clipPath: "inset(100% 0 0 0)" }, { opacity: 1, y: 0, clipPath: "inset(0% 0 0 0)", duration: 0.55, ease: E }, 1.98);
+      tl.fromTo("#s1-w4", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, ease: E }, 2.45);
+      gsap.utils.toArray("#s1-steps .s1-dot").forEach((d, i) => tl.fromTo(d, { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, ease: "back.out(2)" }, 2.75 + i * 0.22));
+      gsap.utils.toArray("#s1-steps .s1-bar").forEach((d, i) => tl.fromTo(d, { scaleX: 0 }, { scaleX: 1, duration: 0.2, ease: "power1.out" }, 2.85 + i * 0.22));
+
+      // ================= S2 =================
+      sceneIO("s2", 3.95, 7.4);
+      tl.fromTo("#s2-cam", { y: 40, scale: 0.98 }, { y: 0, scale: 1, duration: 3.6, ease: "power2.out" }, 3.95);
+      tl.fromTo("#s2-win", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.45, ease: E }, 3.98);
+      tl.fromTo("#s2-q", { opacity: 0, y: 30, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: "back.out(1.5)" }, 4.35);
+      tl.to("#s2-st1", { color: "#ffb54a", duration: 0.2 }, 4.35);
+      tl.fromTo("#s2-typing", { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.25, ease: E }, 5.0);
+      gsap.utils.toArray(".s2-td").forEach((d, i) => tl.fromTo(d, { y: 0 }, { y: -10, duration: 0.18, yoyo: true, repeat: 3, ease: "sine.inOut" }, 5.05 + i * 0.08));
+      tl.to("#s2-typing", { opacity: 0, duration: 0.15 }, 5.72);
+      tl.fromTo("#s2-a", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.35, ease: E }, 5.78);
+      gsap.utils.toArray(".s2-line").forEach((d, i) => tl.fromTo(d, { scaleX: 0, transformOrigin: "0 50%" }, { scaleX: 1, duration: 0.25, ease: "power2.out" }, 5.9 + i * 0.12));
+      tl.to("#s2-st2", { color: "#ffb54a", duration: 0.2 }, 5.75);
+      tl.fromTo("#s2-stop", { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.8)" }, 6.58);
+      tl.to("#s2-st3", { color: "#ffb54a", duration: 0.2 }, 6.56);
+      tl.to(["#s2-q", "#s2-a"], { opacity: 0.45, duration: 0.5, ease: "power1.out" }, 6.7);
+
+      // ================= S3 =================
+      sceneIO("s3", 7.45, 10.0, { inDur: 0.25 });
+      tl.fromTo("#s3-cam", { y: 0 }, { y: -220, duration: 2.6, ease: "power1.inOut" }, 7.5);
+      tl.fromTo("#s3-goal", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.45, ease: "back.out(1.7)" }, 7.62);
+      tl.to("#s3-w1", { strokeDashoffset: 0, duration: 0.45, ease: "power1.inOut" }, 8.15);
+      const s3n = gsap.utils.toArray(".s3-n");
+      tl.fromTo(s3n[0], { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.3, ease: E }, 8.5);
+      tl.to("#s3-w2", { strokeDashoffset: 0, duration: 0.4, ease: "power1.inOut" }, 8.93);
+      tl.fromTo(s3n[1], { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.3, ease: E }, 9.2);
+      tl.to("#s3-w3", { strokeDashoffset: 0, duration: 0.35, ease: "power1.inOut" }, 9.35);
+      tl.fromTo(s3n[2], { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.3, ease: E }, 9.6);
+      tl.fromTo("#s3-keep", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.4, ease: E }, 9.1);
+      tl.to("#s3-w4", { strokeDashoffset: 0, duration: 0.5, ease: "none" }, 9.7);
+
+      // ================= S4 =================
+      sceneIO("s4", 9.95, 18.3);
+      tl.fromTo("#s4-cam", { scale: 1.12, y: 120 }, { scale: 1, y: 0, duration: 2.0, ease: "power2.inOut" }, 9.95);
+      tl.fromTo("#s4-goal", { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.6)" }, 10.0);
+      gsap.utils.toArray(".s4-split").forEach((p, i) => tl.to(p, { strokeDashoffset: 0, duration: 0.4, ease: "power1.inOut" }, 10.4 + i * 0.1));
+      gsap.utils.toArray(".s4-task").forEach((n, i) => tl.fromTo(n, { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.35, ease: E }, 10.75 + i * 0.18));
+      tl.fromTo("#s4-tools-k", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 11.9);
+      // tools land as each is spoken
+      tl.fromTo("#s4-browser", { opacity: 0, y: 50, rotateX: 25, transformPerspective: 900 }, { opacity: 1, y: 0, rotateX: 0, duration: 0.45, ease: E }, 12.97);
+      gsap.utils.toArray(".s4-br-line").forEach((d, i) => tl.fromTo(d, { opacity: 0 }, { opacity: 1, duration: 0.2 }, 13.2 + i * 0.08));
+      tl.to("#s4-t1", { borderColor: "#46d3ff", color: "#46d3ff", duration: 0.25 }, 12.97);
+      tl.fromTo("#s4-cal", { opacity: 0, y: 50, rotateX: 25, transformPerspective: 900 }, { opacity: 1, y: 0, rotateX: 0, duration: 0.45, ease: E }, 13.92);
+      tl.fromTo(".s4-cell-hot", { scale: 0.4 }, { scale: 1, duration: 0.35, ease: "back.out(2.2)" }, 14.2);
+      tl.to("#s4-t2", { borderColor: "#46d3ff", color: "#46d3ff", duration: 0.25 }, 13.92);
+      tl.fromTo("#s4-code", { opacity: 0, y: 50, rotateX: 25, transformPerspective: 900 }, { opacity: 1, y: 0, rotateX: 0, duration: 0.45, ease: E }, 14.68);
+      gsap.utils.toArray(".s4-cl").forEach((d, i) => tl.fromTo(d, { opacity: 0, x: -10 }, { opacity: 1, x: 0, duration: 0.15 }, 14.85 + i * 0.09));
+      tl.to("#s4-t3", { borderColor: "#46d3ff", color: "#46d3ff", duration: 0.25 }, 14.68);
+      // verify
+      gsap.utils.toArray(".s4-join").forEach((p, i) => tl.to(p, { strokeDashoffset: 0, duration: 0.35, ease: "power1.inOut" }, 15.3 + i * 0.06));
+      tl.fromTo("#s4-verify", { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.6)" }, 15.5);
+      gsap.utils.toArray(".s4-chk").forEach((d, i) => tl.fromTo(d, { scale: 0 }, { scale: 1, duration: 0.25, ease: "back.out(2.4)" }, 15.75 + i * 0.2));
+      // mistake -> loop back -> retry -> fixed
+      tl.to("#s4-cam", { x: -40, duration: 1.4, ease: EI }, 16.4);
+      tl.to("#s4-loop", { strokeDashoffset: 0, duration: 0.7, ease: "power2.inOut" }, 16.65);
+      tl.fromTo("#s4-loop-arrow", { opacity: 0 }, { opacity: 1, duration: 0.15 }, 17.3);
+      tl.fromTo("#s4-fix", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, ease: E }, 16.75);
+      tl.to("#s4-t3", { borderColor: "#ff7a66", color: "#ff7a66", duration: 0.2 }, 17.3);
+      tl.to("#s4-t3", { borderColor: "#4ee59a", color: "#4ee59a", duration: 0.25 }, 17.65);
+      tl.to("#s4-x-ok", { opacity: 1, duration: 0.25 }, 17.8);
+      tl.to("#s4-x-mark", { opacity: 0, duration: 0.2 }, 17.8);
+      tl.fromTo("#s4-x", { scale: 1 }, { scale: 1.25, duration: 0.15, yoyo: true, repeat: 1, ease: "power1.out" }, 17.8);
+
+      // ================= S5 =================
+      sceneIO("s5", 18.35, 27.95);
+      tl.fromTo("#s5-cam", { y: 160 }, { y: 0, duration: 1.0, ease: "power2.out" }, 18.35);
+      tl.fromTo("#s5-botp", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: E }, 18.45);
+      tl.fromTo("#s5-q1", { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.6)" }, 18.7);
+      gsap.utils.toArray(".s5-li").forEach((d, i) => tl.fromTo(d, { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.3, ease: E }, 20.25 + i * 0.22));
+      tl.fromTo("#s5-agp", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.5, ease: E }, 21.7);
+      tl.to("#s5-botp", { opacity: 0.45, duration: 0.5 }, 21.8);
+      tl.to("#s5-cam", { y: -60, duration: 5.5, ease: "power1.inOut" }, 22.0);
+      tl.fromTo("#s5-q2", { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.6)" }, 21.95);
+      tl.fromTo("#s5-cmp", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 23.3);
+      tl.fromTo("#s5-optA", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.35, ease: E }, 23.38);
+      tl.fromTo("#s5-optB", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.35, ease: E }, 23.52);
+      gsap.utils.toArray(".s5-bar").forEach((d, i) => tl.fromTo(d, { scaleX: 0 }, { scaleX: 1, duration: 0.45, ease: "power2.out" }, 23.7 + (i % 2) * 0.1 + Math.floor(i / 2) * 0.12));
+      tl.to("#s5-optA", { borderColor: "#46d3ff", duration: 0.3 }, 24.35);
+      tl.fromTo("#s5-it", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 24.66);
+      tl.fromTo("#s5-route", { scaleX: 0 }, { scaleX: 1, duration: 0.9, ease: "power1.inOut" }, 24.75);
+      gsap.utils.toArray(".s5-day").forEach((d, i) => tl.fromTo(d, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.3, ease: "back.out(1.8)" }, 24.8 + i * 0.32));
+      tl.fromTo("#s5-draft", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.4, ease: E }, 25.95);
+      tl.fromTo("#s5-approve", { scale: 1 }, { scale: 1.08, duration: 0.3, yoyo: true, repeat: 1, ease: "sine.inOut" }, 27.0);
+
+      // ================= S6 =================
+      sceneIO("s6", 27.95, 34.3);
+      tl.fromTo("#s6-cam", { scale: 1.06 }, { scale: 1, duration: 6.3, ease: "power1.out" }, 27.95);
+      tl.fromTo("#s6-head", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.5, ease: E }, 28.2);
+      tl.to("#s6-wire", { strokeDashoffset: 0, duration: 0.8, ease: "power1.inOut" }, 28.5);
+      gsap.utils.toArray(".s6-n").forEach((d, i) => tl.fromTo(d, { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.8)" }, 28.5 + i * 0.25));
+      tl.to("#s6-n2", { borderColor: "#ff7a66", color: "#ff7a66", duration: 0.25 }, 29.85);
+      tl.fromTo("#s6-warn", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: E }, 29.9);
+      tl.to("#s6-down", { strokeDashoffset: 0, duration: 0.5, ease: "none" }, 30.95);
+      tl.fromTo("#s6-gate", { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.5, ease: E }, 31.2);
+      tl.fromTo("#s6-ha", { opacity: 0, scale: 0.92 }, { opacity: 1, scale: 1, duration: 0.45, ease: E }, 32.0);
+      tl.fromTo("#s6-ring", { opacity: 0, scale: 1.2 }, { opacity: 1, scale: 1, duration: 0.4, ease: E }, 33.1);
+      tl.to("#s6-ring", { opacity: 0.35, duration: 0.4, yoyo: true, repeat: 1, ease: "sine.inOut" }, 33.5);
+
+      // ================= S7 =================
+      sceneIO("s7", 34.25, 38.8);
+      tl.fromTo("#s7-cam", { scale: 1 }, { scale: 1.07, duration: 4.6, ease: "power1.inOut" }, 34.25);
+      tl.fromTo("#s7-k", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: E }, 34.5);
+      tl.fromTo("#s7-bub", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.6)" }, 35.9);
+      tl.fromTo("#s7-t1", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: E }, 36.0);
+      tl.to("#s7-talk", { opacity: 0.35, scale: 0.9, duration: 0.5, ease: EI }, 37.3);
+      tl.to("#s7-wire", { strokeDashoffset: 0, duration: 0.6, ease: "power2.inOut" }, 37.35);
+      gsap.utils.toArray(".s7-n").forEach((d, i) => tl.fromTo(d, { opacity: 0, scale: 0 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)" }, 37.35 + i * 0.14));
+      tl.fromTo("#s7-t2", { opacity: 0, y: 50, clipPath: "inset(0 0 100% 0)" }, { opacity: 1, y: 0, clipPath: "inset(0 0 0% 0)", duration: 0.5, ease: E }, 37.45);
+
+      // ================= S8 =================
+      sceneIO("s8", 38.75, null, { inDur: 0.3 });
+      tl.fromTo("#s8-core", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.4)" }, 38.8);
+      tl.fromTo("#s8-orbit", { rotation: 0 }, { rotation: 300, duration: 2.5, ease: "none" }, 38.75);
+      tl.fromTo("#s8-t1", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: E }, 39.05);
+      tl.fromTo("#s8-t2", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.4, ease: E }, 40.05);
+      tl.fromTo("#s8-cam", { scale: 1 }, { scale: 1.04, duration: 2.5, ease: "power1.out" }, 38.75);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
